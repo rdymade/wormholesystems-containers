@@ -24,6 +24,8 @@ services:
       dockerfile: dockerfiles/composer/composer.dockerfile
     volumes:
       - ./wormhole-systems:/var/www/html
+    depends_on:
+        - application
   npm:
     image: application
     working_dir: /var/www/html
