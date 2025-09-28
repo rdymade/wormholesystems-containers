@@ -19,6 +19,15 @@ docker-compose build application
 
 # 5. Start services
 docker-compose up -d --build
+
+# 6. Download EVE SDE (Static Data Export)
+docker-compose run --rm artisan sde:download
+
+# 7. Prepare EVE SDE data
+docker-compose run --rm artisan sde:prepare
+
+# 8. Run database migrations and seeders
+docker-compose run --rm artisan migrate --seed
 ```
 
 Your application will be available at:
@@ -91,8 +100,8 @@ mkcert -install
 ### Artisan Commands
 ```bash
 # Run artisan commands
-docker-compose exec artisan migrate
-docker-compose exec artisan queue:work
+docker-compose run --rm artisan migrate
+docker-compose run --rm artisan queue:work
 ```
 
 ### NPM Commands
@@ -131,7 +140,12 @@ RESTART_POLICY=unless-stopped
 ```bash
 ./scripts/setup.sh
 docker-compose build application
-docker-compose up -d
+docker-compose up -d --build
+
+# Prepare application data
+docker-compose run --rm artisan sde:download
+docker-compose run --rm artisan sde:prepare
+docker-compose run --rm artisan migrate --seed
 ```
 
 ## SSL Certificates
