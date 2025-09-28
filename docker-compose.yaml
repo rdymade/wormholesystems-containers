@@ -1,34 +1,91 @@
 services:
-  database:
-    image: mariadb:latest
-    restart: unless-stopped
-    env_file:
-      - config/mariadb/.env
-    volumes:
-      - mariadb_data:/var/lib/mysql
-  wormholesystems:
+  application:
+    image: application
     build:
       context: .
-      dockerfile: config/wormholesystems/Dockerfile
-    restart: unless-stopped
+      dockerfile: dockerfiles/php/php.dockerfile
+    volumes:
+      - ./wormhole-systems:/var/www/html:delegated
+  mysql:
+    build:
+      context: .
+      dockerfile: dockerfiles/mysql/mysql.dockerfile
+    volumes:
+      - mysql-data:/var/lib/mysql
     env_file:
-      - config/wormholesystems/.env
+      - dockerfiles/mysql/.env
+  redis:
+    build:
+      context: .
+      dockerfile: dockerfiles/redis/redis.dockerfile
+  composer:
+    build:
+      context: .
+      dockerfile: dockerfiles/composer/composer.dockerfile
+    volumes:
+      - ./wormhole-systems:/var/www/html
+  npm:
+    image: application
+    working_dir: /var/www/html
+    entrypoint: ["npm"]
     volumes:
       - ./wormhole-systems:/var/www/html
     depends_on:
-      - database
-  webserver:
-    image: nginx:latest
-    restart: unless-stopped
+      - application
+  server:
+    build:
+      context: .
+      dockerfile: dockerfiles/server/nginx.dockerfile
     ports:
       - "3000:80"
-      - "3443:443"
     volumes:
       - ./wormhole-systems:/var/www/html
-      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./config/nginx/sites:/etc/nginx/conf.d
-      - ./config/ssl:/etc/nginx/ssl
+      - ./dockerfiles/server/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-        - wormholesystems
+      - application
+      - mysql
+      - redis
+  artisan:
+    image: application
+    working_dir: /var/www/html
+    entrypoint: ["php","-d", "memory_limit=-1", "artisan"]
+    volumes:
+      - ./wormhole-systems:/var/www/html:delegated
+    depends_on:
+      - application
+  queue:
+    image: application
+    tty: true
+    volumes:
+      - ./wormhole-systems:/var/www/html:delegated
+    working_dir: /var/www/html
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    restart: always
+    depends_on:
+      - application
+  scheduler:
+    image: application
+    tty: true
+    volumes:
+      - ./wormhole-systems:/var/www/html:delegated
+    working_dir: /var/www/html
+    command: php artisan schedule:work
+    restart: always
+    depends_on:
+      - application
+  reverb:
+    image: application
+    working_dir: /var/www/html
+    tty: true
+    volumes:
+      - ./wormhole-systems:/var/www/html:delegated
+    depends_on:
+      - application
+    command: php artisan reverb:start
+  traefik:
+    image: traefik:latest
+    ports:
+      - "80:80"
+      - "443:443"
 volumes:
-  mariadb_data:
+  mysql-data:
