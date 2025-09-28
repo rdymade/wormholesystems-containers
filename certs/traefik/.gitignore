@@ -1,0 +1,5 @@
+# Ignore all certificate files in traefik subdirectory
+*
+
+# But keep this .gitignore file to preserve directory structure
+!.gitignore

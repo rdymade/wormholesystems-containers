@@ -19,7 +19,6 @@ traefik/acme.yml
 dockerfiles/server/nginx.conf
 
 # SSL Certificates
-certs/
 *.pem
 *.key
 *.crt
