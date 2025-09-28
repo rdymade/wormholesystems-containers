@@ -2,6 +2,18 @@
 
 A portable Docker setup for the Wormhole Systems application with configurable domains, ports, and automatic SSL certificate management.
 
+## ⚠️ **EXPERIMENTAL - USE WITH CAUTION** ⚠️
+
+> **WARNING**: This Docker setup is experimental and may contain bugs, security issues, or incomplete features. 
+> 
+> - **Not recommended for production use** without thorough testing
+> - **Database and data loss** may occur during updates
+> - **Security configurations** should be reviewed before deployment
+> - **Backup your data** regularly when using this setup
+> - **Report issues** and contribute improvements via GitHub issues
+>
+> Use at your own risk. The maintainers are not responsible for any data loss or security breaches.
+
 ## Quick Start
 
 ```bash
@@ -26,7 +38,13 @@ docker-compose run --rm artisan sde:download
 # 7. Prepare EVE SDE data
 docker-compose run --rm artisan sde:prepare
 
-# 8. Run database migrations and seeders
+# 8. Copy Laravel environment file
+cp wormhole-systems/.env.example wormhole-systems/.env
+
+# 9. Generate Laravel application key
+docker-compose run --rm artisan key:generate
+
+# 10. Run database migrations and seeders
 docker-compose run --rm artisan migrate --seed
 ```
 
@@ -51,6 +69,48 @@ HTTP_PORT=80
 HTTPS_PORT=443
 TRAEFIK_DASHBOARD_PORT=8080
 ```
+
+### Laravel Application Configuration
+
+After copying `wormhole-systems/.env.example` to `wormhole-systems/.env`, edit the Laravel application configuration:
+
+```bash
+# Application settings
+APP_URL=https://your-domain.com
+APP_KEY=  # Generate with: docker-compose run --rm artisan key:generate
+
+# Database (should match MySQL container settings)
+DB_DATABASE=wormholesystems
+DB_USERNAME=wormholesystems
+DB_PASSWORD=your-secure-password
+
+# WebSocket settings (must match your domains)
+VITE_REVERB_HOST="ws.your-domain.com"
+
+# EVE Online API (create at https://developers.eveonline.com/)
+EVE_CLIENT_ID=your-eve-client-id
+EVE_CLIENT_SECRET=your-eve-client-secret
+
+# Reverb WebSocket credentials (generate random strings)
+REVERB_APP_ID=your-random-app-id
+REVERB_APP_KEY=your-random-app-key
+REVERB_APP_SECRET=your-random-app-secret
+```
+
+### MySQL Database Configuration
+
+Configure the MySQL database in `dockerfiles/mysql/.env`:
+
+```bash
+MYSQL_DATABASE=wormholesystems
+MYSQL_USER=wormholesystems
+MYSQL_PASSWORD=your-secure-password
+MYSQL_ROOT_PASSWORD=your-root-password
+```
+
+**Important**: The database credentials must match between:
+- `dockerfiles/mysql/.env` (MySQL container)
+- `wormhole-systems/.env` (Laravel application)
 
 ### Certificate Modes
 
@@ -145,6 +205,8 @@ docker-compose up -d --build
 # Prepare application data
 docker-compose run --rm artisan sde:download
 docker-compose run --rm artisan sde:prepare
+cp wormhole-systems/.env.example wormhole-systems/.env
+docker-compose run --rm artisan key:generate
 docker-compose run --rm artisan migrate --seed
 ```
 
