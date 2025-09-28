@@ -1,4 +1,4 @@
-FROM application
+FROM application:latest
 
 # copy composer binary from the official composer image
 COPY --link --chown=${WWWUSER}:${WWWUSER} --from=composer:latest /usr/bin/composer /usr/bin/composer

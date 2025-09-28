@@ -1,1 +1,46 @@
+# =============================================================================
+# WORMHOLE SYSTEMS - DOCKER CONTAINER GITIGNORE
+# =============================================================================
+
+# IDE Files
 .idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment Configuration
+.env
+.env.local
+.env.production
+
+# Generated Configuration Files
+traefik/acme.yml
+dockerfiles/server/nginx.conf
+
+# SSL Certificates
+certs/
+*.pem
+*.key
+*.crt
+*.csr
+
+# Docker Volumes & Data
+mysql-data/
+traefik-acme/
+
+# Logs
+*.log
+
+# Temporary Files
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Backup Files
+*.bak
+*.backup
+
+# Docker Override Files (user-specific)
+docker-compose.override.yml

@@ -1,11 +1,18 @@
+# =============================================================================
+# MANUAL TLS CONFIGURATION
+# =============================================================================
+# This file is used when CERT_MODE=manual for development certificates
+# When using CERT_MODE=acme, Traefik handles certificates automatically
+# =============================================================================
+
 tls:
   certificates:
-    - certFile: /etc/traefik/certs/localhost+1.pem
-      keyFile: /etc/traefik/certs/localhost+1-key.pem
+    - certFile: /etc/traefik/certs/traefik/localhost+1.pem
+      keyFile: /etc/traefik/certs/traefik/localhost+1-key.pem
       stores:
         - default
   stores:
     default:
       defaultCertificate:
-        certFile: /etc/traefik/certs/localhost+1.pem
-        keyFile: /etc/traefik/certs/localhost+1-key.pem
+        certFile: /etc/traefik/certs/traefik/localhost+1.pem
+        keyFile: /etc/traefik/certs/traefik/localhost+1-key.pem

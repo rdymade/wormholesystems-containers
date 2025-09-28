@@ -1,1 +1,9 @@
+# MySQL Environment Configuration
 .env
+.env.local
+.env.production
+
+# MySQL Data Files (if any get created here)
+*.sql
+*.dump
+data/
