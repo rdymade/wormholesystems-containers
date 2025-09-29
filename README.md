@@ -102,16 +102,16 @@ EVE_CLIENT_SECRET=your_eve_client_secret_here
 
 # WebSocket server credentials (ALL must be random for security)
 # Generate each value separately:
-REVERB_APP_ID=YourRandomAppId32CharactersLongHere==
-REVERB_APP_KEY=YourRandomKey32CharactersLongHere==
-REVERB_APP_SECRET=YourRandomSecret32CharactersLongHere==
+REVERB_APP_ID=a1b2c3d4e5f6g7h8
+REVERB_APP_KEY=b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7
+REVERB_APP_SECRET=c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8
 ```
 
 **Generate random Reverb values:**
 ```bash
-openssl rand -base64 32      # For REVERB_APP_ID
-openssl rand -base64 32      # For REVERB_APP_KEY
-openssl rand -base64 32      # For REVERB_APP_SECRET
+openssl rand -hex 8          # For REVERB_APP_ID (16 alphanumeric chars)
+openssl rand -hex 16         # For REVERB_APP_KEY (32 alphanumeric chars)
+openssl rand -hex 16         # For REVERB_APP_SECRET (32 alphanumeric chars)
 ```
 
 **Critical:** The database settings (DB_DATABASE, DB_USERNAME, DB_PASSWORD) must be identical to what you set in Step 2!
