@@ -87,6 +87,9 @@ Now we configure the Laravel application itself. This is where we tell Laravel h
 # Application URL (use your domain from Step 1)
 APP_URL=https://wormhole.systems
 
+# Contact email for the application (CRITICAL: Required to prevent EVE API bans!)
+CONTACT_EMAIL="your-email@example.com | Your EVE Character Name"
+
 # Database connection - MUST MATCH dockerfiles/mysql/.env exactly!
 DB_DATABASE=wormholesystems
 DB_USERNAME=wormholesystems
@@ -106,6 +109,9 @@ REVERB_APP_ID=a1b2c3d4e5f6g7h8
 REVERB_APP_KEY=b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7
 REVERB_APP_SECRET=c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8
 ```
+
+**⚠️ CRITICAL: Set CONTACT_EMAIL to prevent EVE API bans!**
+CCP requires all third-party applications to provide contact information. Failure to set this correctly may result in your application being banned from the EVE Online API.
 
 **Generate random Reverb values:**
 ```bash
