@@ -1,8 +1,0 @@
-# Generated ACME Configuration
-acme.yml
-
-# ACME Certificate Storage
-acme.json
-
-# Traefik Logs
-*.log

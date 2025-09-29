@@ -1,136 +1,200 @@
-# Wormhole Systems - Docker Setup
+# Wormhole Systems - Production Docker Setup
 
-A portable Docker setup for the Wormhole Systems application with configurable domains, ports, and automatic SSL certificate management.
+Production-ready Docker setup for Wormhole Systems with automatic SSL certificates and secure defaults.
 
-## ⚠️ **EXPERIMENTAL - USE WITH CAUTION** ⚠️
+## Setup Steps
 
-> **WARNING**: This Docker setup is experimental and may contain bugs, security issues, or incomplete features. 
-> 
-> - **Not recommended for production use** without thorough testing
-> - **Database and data loss** may occur during updates
-> - **Security configurations** should be reviewed before deployment
-> - **Backup your data** regularly when using this setup
-> - **Report issues** and contribute improvements via GitHub issues
->
-> Use at your own risk. The maintainers are not responsible for any data loss or security breaches.
+### Step 1: Configure Docker Environment
 
-## Quick Start
+First, we need to tell Docker about your domain names and SSL certificate email.
+
+**Create the main configuration file:**
+
+1. Copy the template file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Open the file for editing:
+   ```bash
+   nano .env
+   ```
+
+3. Update the file with your actual values:
+   ```bash
+   # Your main domain (replace with your actual domain)
+   APP_DOMAIN=wormhole.systems
+   
+   # Your WebSocket subdomain (usually ws.yourdomain)
+   WS_DOMAIN=ws.wormhole.systems
+   
+   # Your email for SSL certificate notifications
+   ACME_EMAIL=admin@wormhole.systems
+   ```
+
+### Step 2: Configure MySQL Database
+
+Now we need to set up the database credentials that MySQL will use when it starts up.
+
+**Create the MySQL configuration file:**
+
+1. Copy the template file:
+   ```bash
+   cp dockerfiles/mysql/.env.example dockerfiles/mysql/.env
+   ```
+
+2. Open the file for editing:
+   ```bash
+   nano dockerfiles/mysql/.env
+   ```
+
+3. Set your database credentials (choose strong passwords):
+   ```bash
+   # Database name for the application
+   MYSQL_DATABASE=wormholesystems
+   
+   # Database user for the application
+   MYSQL_USER=wormholesystems
+   
+   # Password for the application user (make this secure!)
+   MYSQL_PASSWORD=MySecurePassword123!
+   
+   # Root password for MySQL admin access (make this very secure!)
+   MYSQL_ROOT_PASSWORD=MySuperSecureRootPassword456!
+   ```
+
+**Important:** Remember these exact credentials - you'll need to use them again in Step 3!
+
+### Step 3: Configure Laravel Application
+
+Now we configure the Laravel application itself. This is where we tell Laravel how to connect to the database and external services.
+
+**Create the Laravel configuration file:**
+
+1. Copy the template file:
+   ```bash
+   cp wormhole-systems/.env.example wormhole-systems/.env
+   ```
+
+2. Open the file for editing:
+   ```bash
+   nano wormhole-systems/.env
+   ```
+
+3. Configure the application settings (**Critical:** Database credentials must match Step 2 exactly!):
 
 ```bash
-# 1. Copy environment template
-cp .env.example .env
+# Application URL (use your domain from Step 1)
+APP_URL=https://wormhole.systems
 
-# 2. Edit configuration (set your domains)
-nano .env
+# Database connection - MUST MATCH dockerfiles/mysql/.env exactly!
+DB_DATABASE=wormholesystems
+DB_USERNAME=wormholesystems
+DB_PASSWORD=MySecurePassword123!
 
-# 3. Run setup
-./scripts/setup.sh
+# WebSocket server (use your WebSocket domain from Step 1)
+VITE_REVERB_HOST="ws.wormhole.systems"
 
-# 4. Build application image
+# EVE Online API credentials (get these from https://developers.eveonline.com/)
+# Create a new application and copy the Client ID and Secret here
+EVE_CLIENT_ID=your_eve_client_id_here
+EVE_CLIENT_SECRET=your_eve_client_secret_here
+
+# WebSocket server credentials (ALL must be random for security)
+# Generate each value separately:
+REVERB_APP_ID=YourRandomAppId32CharactersLongHere==
+REVERB_APP_KEY=YourRandomKey32CharactersLongHere==
+REVERB_APP_SECRET=YourRandomSecret32CharactersLongHere==
+```
+
+**Generate random Reverb values:**
+```bash
+openssl rand -base64 32      # For REVERB_APP_ID
+openssl rand -base64 32      # For REVERB_APP_KEY
+openssl rand -base64 32      # For REVERB_APP_SECRET
+```
+
+**Critical:** The database settings (DB_DATABASE, DB_USERNAME, DB_PASSWORD) must be identical to what you set in Step 2!
+
+### Step 4: Build and Start Services
+
+Now we'll build the application image first, then start all services. This will take a few minutes the first time.
+
+First, build just the application image:
+```bash
 docker-compose build application
+```
 
-# 5. Start services
+Then start all services:
+```bash
 docker-compose up -d --build
+```
 
-# 6. Download EVE SDE (Static Data Export)
+**Wait for:** All containers to start (you can check with `docker-compose ps`)
+
+### Step 5: Install Dependencies and Build Assets
+
+Now we need to install all dependencies and build the frontend assets.
+
+Install Composer dependencies (PHP packages):
+```bash
+docker-compose run --rm composer install
+```
+
+Generate application routes:
+```bash
+docker-compose run --rm artisan wayfinder:generate
+```
+
+Install NPM dependencies (JavaScript packages):
+```bash
+docker-compose run --rm npm install
+```
+
+Build frontend assets:
+```bash
+docker-compose run --rm npm run build
+```
+
+### Step 6: Initialize Application
+
+Now we need to download EVE Online data and set up the application database.
+
+Download and prepare EVE Online static data (this takes a while):
+```bash
+# Download EVE SDE data (Static Data Export) - about 500MB
 docker-compose run --rm artisan sde:download
 
-# 7. Prepare EVE SDE data
+# Process and import the data into the database - takes 10-15 minutes
 docker-compose run --rm artisan sde:prepare
+```
 
-# 8. Copy Laravel environment file
-cp wormhole-systems/.env.example wormhole-systems/.env
-
-# 9. Generate Laravel application key
+Generate the Laravel application key and set up the database:
+```bash
+# Generate a unique encryption key for Laravel
 docker-compose run --rm artisan key:generate
 
-# 10. Run database migrations and seeders
+# Create database tables and add sample data
 docker-compose run --rm artisan migrate --seed
 ```
 
-Your application will be available at:
-- **Main app**: `https://your-domain.com`
-- **WebSocket**: `wss://ws.your-domain.com`
-- **Traefik Dashboard**: `http://localhost:8080`
+### Step 7: Access Your Application
 
-## Configuration
+🎉 **Your application is now ready!**
 
-### Environment Variables
+Access your Wormhole Systems application at:
+- **Main application**: `https://wormhole.systems` (or your domain)
+- **WebSocket server**: `wss://ws.wormhole.systems` (handles real-time updates)
 
-Edit `.env` file with your settings:
+**First login:** Use EVE Online SSO to log in with your EVE character.
 
-```bash
-# Domains
-APP_DOMAIN=your-domain.com
-WS_DOMAIN=ws.your-domain.com
+## ⚠️ **Critical: Database Credentials Must Match**
 
-# Ports (usually keep defaults)
-HTTP_PORT=80
-HTTPS_PORT=443
-TRAEFIK_DASHBOARD_PORT=8080
-```
+The database settings must be **identical** in these two files:
+- **File:** `dockerfiles/mysql/.env` → MySQL container configuration  
+- **File:** `wormhole-systems/.env` → Laravel database connection
 
-### Laravel Application Configuration
-
-After copying `wormhole-systems/.env.example` to `wormhole-systems/.env`, edit the Laravel application configuration:
-
-```bash
-# Application settings
-APP_URL=https://your-domain.com
-APP_KEY=  # Generate with: docker-compose run --rm artisan key:generate
-
-# Database (should match MySQL container settings)
-DB_DATABASE=wormholesystems
-DB_USERNAME=wormholesystems
-DB_PASSWORD=your-secure-password
-
-# WebSocket settings (must match your domains)
-VITE_REVERB_HOST="ws.your-domain.com"
-
-# EVE Online API (create at https://developers.eveonline.com/)
-EVE_CLIENT_ID=your-eve-client-id
-EVE_CLIENT_SECRET=your-eve-client-secret
-
-# Reverb WebSocket credentials (generate random strings)
-REVERB_APP_ID=your-random-app-id
-REVERB_APP_KEY=your-random-app-key
-REVERB_APP_SECRET=your-random-app-secret
-```
-
-### MySQL Database Configuration
-
-Configure the MySQL database in `dockerfiles/mysql/.env`:
-
-```bash
-MYSQL_DATABASE=wormholesystems
-MYSQL_USER=wormholesystems
-MYSQL_PASSWORD=your-secure-password
-MYSQL_ROOT_PASSWORD=your-root-password
-```
-
-**Important**: The database credentials must match between:
-- `dockerfiles/mysql/.env` (MySQL container)
-- `wormhole-systems/.env` (Laravel application)
-
-### Certificate Modes
-
-#### Development (Default)
-```bash
-CERT_MODE=manual
-```
-- Uses mkcert or self-signed certificates
-- Perfect for localhost development
-- Certificates generated automatically
-
-#### Production
-```bash
-CERT_MODE=acme
-ACME_EMAIL=admin@your-domain.com
-ACME_CHALLENGE=http
-```
-- Automatic Let's Encrypt certificates
-- Auto-renewal included
-- No manual certificate management
+**Mismatched credentials will prevent the application from connecting to the database.**
 
 ## Services
 
@@ -139,101 +203,62 @@ ACME_CHALLENGE=http
 - **mysql**: MySQL database
 - **redis**: Redis cache
 - **reverb**: Laravel WebSocket server
-- **traefik**: Reverse proxy with SSL termination
+- **traefik**: Reverse proxy with automatic SSL
 - **queue**: Laravel queue worker
 - **scheduler**: Laravel task scheduler
 
-## Development
+## SSL Certificates
 
-### Local Development
-```bash
-# Use localhost domains
-APP_DOMAIN=localhost
-WS_DOMAIN=ws.localhost
-CERT_MODE=manual
+SSL certificates are handled automatically by Traefik:
+- Automatic Let's Encrypt certificates
+- Auto-renewal before expiration
+- No manual setup required
 
-# Install mkcert for trusted certificates (optional)
-brew install mkcert  # macOS
-mkcert -install
-```
+## Server Requirements
+
+- Docker and Docker Compose installed
+- Ports 80 and 443 open to the internet
+- Domain names pointing to your server IP
+- At least 8GB RAM required
+
+## Commands
 
 ### Artisan Commands
 ```bash
-# Run artisan commands
 docker-compose run --rm artisan migrate
 docker-compose run --rm artisan queue:work
+docker-compose run --rm artisan tinker
 ```
 
 ### NPM Commands
 ```bash
-# Install dependencies
 docker-compose run --rm npm install
-
-# Build assets
 docker-compose run --rm npm run build
-
-# Watch for changes
 docker-compose run --rm npm run dev
 ```
 
-## Production Deployment
-
-### 1. Server Setup
-- Ensure ports 80 and 443 are open
-- Point your domains to the server IP
-- Install Docker and Docker Compose
-
-### 2. Configuration
+### Service Management
 ```bash
-# Production settings
-CERT_MODE=acme
-APP_DOMAIN=your-domain.com
-WS_DOMAIN=ws.your-domain.com
-ACME_EMAIL=admin@your-domain.com
+# View logs
+docker-compose logs -f
 
-# Security settings
-TRAEFIK_API_INSECURE=false
-RESTART_POLICY=unless-stopped
-```
+# Restart services
+docker-compose restart
 
-### 3. Deploy
-```bash
-./scripts/setup.sh
-docker-compose build application
+# Update and rebuild
+docker-compose down
 docker-compose up -d --build
-
-# Prepare application data
-docker-compose run --rm artisan sde:download
-docker-compose run --rm artisan sde:prepare
-cp wormhole-systems/.env.example wormhole-systems/.env
-docker-compose run --rm artisan key:generate
-docker-compose run --rm artisan migrate --seed
 ```
-
-## SSL Certificates
-
-### Automatic (Recommended)
-- **ACME Mode**: Traefik automatically manages Let's Encrypt certificates
-- **Auto-renewal**: Certificates renew automatically before expiration
-- **HTTP Challenge**: Works out of the box (domains must point to server)
-- **DNS Challenge**: Supports wildcards (requires DNS provider setup)
-
-### Manual
-- **Development**: mkcert creates trusted local certificates
-- **Custom**: Place your certificates in `certs/` directory
 
 ## Troubleshooting
 
-### Certificate Issues
+### Check SSL Certificates
 ```bash
-# Check certificate status
+# View Traefik logs for certificate issues
 docker-compose logs traefik
 
-# Regenerate development certificates
-./scripts/generate-dev-certificates.sh
-
-# Check ACME configuration
-cat traefik/acme.yml
+# Check certificate storage
+docker volume inspect traefik-acme
 ```
 
 ### Service Issues
@@ -241,43 +266,29 @@ cat traefik/acme.yml
 # Check all services
 docker-compose ps
 
-# View logs
+# View specific service logs
 docker-compose logs [service-name]
 
-# Restart services
+# Restart all services
 docker-compose restart
-
-# Rebuild and restart (after code changes)
-docker-compose up -d --build
 ```
 
-### Domain Resolution
-For local development, add to `/etc/hosts`:
+### Database Issues
+```bash
+# Access MySQL directly
+docker-compose exec mysql mysql -u root -p
+
+# Reset database
+docker-compose run --rm artisan migrate:fresh --seed
 ```
-127.0.0.1 localhost
-127.0.0.1 ws.localhost
-```
 
-## Scripts
+## Security Features
 
-- **`scripts/setup.sh`**: Main setup script
-- **`scripts/generate-dev-certificates.sh`**: Development certificates
-- **`scripts/generate-acme-config.sh`**: ACME configuration
-- **`scripts/generate-nginx-config.sh`**: Nginx configuration
-
-## Environment Variables Reference
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `APP_DOMAIN` | `localhost` | Main application domain |
-| `WS_DOMAIN` | `ws.localhost` | WebSocket domain |
-| `CERT_MODE` | `manual` | Certificate mode (`manual` or `acme`) |
-| `ACME_EMAIL` | - | Email for Let's Encrypt (required for ACME) |
-| `ACME_CHALLENGE` | `http` | ACME challenge type (`http` or `dns`) |
-| `HTTP_PORT` | `80` | HTTP port |
-| `HTTPS_PORT` | `443` | HTTPS port |
-| `TRAEFIK_DASHBOARD_PORT` | `8080` | Traefik dashboard port |
-| `RESTART_POLICY` | `always` | Docker restart policy |
+- Traefik dashboard restricted to localhost only
+- SSL verification enabled
+- Automatic HTTPS redirects
+- Secure restart policies
+- No development tools in production
 
 ## License
 
