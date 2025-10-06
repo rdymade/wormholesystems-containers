@@ -16,7 +16,6 @@
 
 # Generated Configuration Files
 traefik/acme.yml
-dockerfiles/server/nginx.conf
 
 # SSL Certificates
 *.pem
