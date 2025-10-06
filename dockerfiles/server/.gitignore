@@ -1,6 +1,3 @@
-# Generated Nginx Configuration
-nginx.conf
-
 # Nginx Logs
 *.log
 access.log
