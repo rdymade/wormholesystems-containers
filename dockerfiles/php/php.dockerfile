@@ -3,7 +3,7 @@ FROM php:8.4-fpm-alpine
 WORKDIR /var/www/html
 
 COPY wormhole-systems .
-COPY dockerfiles/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+#COPY dockerfiles/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 
 RUN apk add --no-cache \
     supervisor \
