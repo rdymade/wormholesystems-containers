@@ -1,6 +1,6 @@
 services:
   application:
-    image: application:latest
+    image: womrhole-systems:latest
     build:
       context: .
       dockerfile: dockerfiles/common/php-fpm/Dockerfile
@@ -76,7 +76,7 @@ services:
       - "traefik.http.middlewares.secure-headers.headers.customrequestheaders.X-Forwarded-For="
       - "traefik.http.routers.wormholesystems.middlewares=secure-headers"
   queue:
-    image: application:latest
+    image: womrhole-systems:latest
     tty: true
     networks:
       - ws-internal
@@ -89,7 +89,7 @@ services:
       application:
         condition: service_healthy
   scheduler:
-    image: application:latest
+    image: womrhole-systems:latest
     tty: true
     networks:
       - ws-internal
@@ -102,7 +102,7 @@ services:
       application:
         condition: service_healthy
   reverb:
-    image: application:latest
+    image: womrhole-systems:latest
     tty: true
     networks:
       - ws-internal
