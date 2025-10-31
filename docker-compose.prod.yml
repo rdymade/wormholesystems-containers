@@ -1,0 +1,139 @@
+services:
+  wormhole-systems:
+    image: wormhole-systems:latest
+    build:
+      context: .
+      dockerfile: dockerfiles/common/php-fpm/Dockerfile
+    networks:
+      - ws-internal
+    volumes:
+      - laravel-storage-prod:/var/www/html
+      - php-logs:/var/log/php
+      - laravel-logs:/var/www/html/storage/logs
+      - ./dockerfiles/production/php-fpm/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm-healthcheck || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      mysql:
+        condition: service_healthy
+  mysql:
+    image: mariadb:latest
+    hostname: mysql
+    networks:
+      - ws-internal
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - mysql-logs:/var/log/mysql
+    env_file:
+      - dockerfiles/mysql/.env
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  redis:
+    image: redis:latest
+    hostname: redis
+    networks:
+      - ws-internal
+    volumes:
+      - redis-logs:/var/log/redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  server:
+    image: nginx:latest
+    networks:
+      - ws-internal
+      - web
+    volumes:
+      - laravel-storage-prod:/var/www/html
+      - nginx-logs:/var/log/nginx
+      - ./dockerfiles/production/nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      wormhole-systems:
+        condition: service_healthy
+    restart: ${RESTART_POLICY:-always}
+    environment:
+      - APP_DOMAIN=${APP_DOMAIN:-localhost}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.wormholesystems.service=server"      
+      - "traefik.http.routers.wormholesystems.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.wormholesystems.entrypoints=websecure"
+      - "traefik.http.routers.wormholesystems.tls.certresolver=primary"
+      - "traefik.http.services.server.loadbalancer.server.port=80"
+      - "traefik.http.middlewares.secure-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.secure-headers.headers.customrequestheaders.X-Forwarded-For="
+      - "traefik.http.routers.wormholesystems.middlewares=secure-headers"
+  queue:
+    image: wormhole-systems:latest
+    tty: true
+    networks:
+      - ws-internal
+    volumes:
+      - laravel-storage-prod:/var/www/html
+      - laravel-logs:/var/www/html/logs
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    restart: unless-stopped
+    depends_on:
+      wormhole-systems:
+        condition: service_healthy
+  scheduler:
+    image: wormhole-systems:latest
+    tty: true
+    networks:
+      - ws-internal
+    volumes:
+      - laravel-storage-prod:/var/www/html
+      - laravel-logs:/var/www/html/logs
+    command: php artisan schedule:work
+    restart: unless-stopped
+    depends_on:
+      wormhole-systems:
+        condition: service_healthy
+  reverb:
+    image: wormhole-systems:latest
+    tty: true
+    networks:
+      - ws-internal
+      - web
+    volumes:
+      - laravel-storage-prod:/var/www/html
+      - laravel-logs:/var/www/html/logs
+    depends_on:
+      wormhole-systems:
+        condition: service_healthy
+    command: php artisan reverb:start --host=${REVERB_HOST:-0.0.0.0} --port=${REVERB_PORT:-8080} --debug
+    restart: ${RESTART_POLICY:-always}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.wormholesystems-reverb.service=reverb"
+      - "traefik.http.routers.wormholesystems-reverb.rule=Host(`${WS_DOMAIN}`)"
+      - "traefik.http.routers.wormholesystems-reverb.entrypoints=websecure"
+      - "traefik.http.routers.wormholesystems-reverb.tls.certresolver=primary"
+      - "traefik.http.services.reverb.loadbalancer.server.port=${REVERB_PORT:-8080}"
+      - "traefik.http.services.reverb.loadbalancer.server.scheme=http"
+volumes:
+  mysql-data:
+  laravel-storage-prod:
+  # Log volumes for persistent storage
+  nginx-logs:
+  php-logs:
+  mysql-logs:
+  redis-logs:
+  laravel-logs:
+
+
+networks:
+  ws-internal:
+  web:
+    external: true

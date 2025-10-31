@@ -1,4 +1,0 @@
-# Nginx Logs
-*.log
-access.log
-error.log

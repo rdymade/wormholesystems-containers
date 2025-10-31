@@ -4,7 +4,15 @@ Production-ready Docker setup for Wormhole Systems with automatic SSL certificat
 
 ## Setup Steps
 
-### Step 1: Configure Docker Environment
+### Step 1: Clone Repository
+
+Clone the Repository including the main repository.
+
+   ```bash
+   git clone --recurse-submodules https://github.com/WormholeSystems/wormholesystems-containers.git
+   ```
+
+### Step 2: Configure Docker Environment
 
 First, we need to tell Docker about your domain names and SSL certificate email.
 
@@ -32,7 +40,12 @@ First, we need to tell Docker about your domain names and SSL certificate email.
    ACME_EMAIL=admin@wormhole.systems
    ```
 
-### Step 2: Configure MySQL Database
+4. Create traefik network:
+   ```bash
+   docker network create -d bridge web
+   ```
+
+### Step 3: Configure MySQL Database
 
 Now we need to set up the database credentials that MySQL will use when it starts up.
 
@@ -63,9 +76,9 @@ Now we need to set up the database credentials that MySQL will use when it start
    MYSQL_ROOT_PASSWORD=MySuperSecureRootPassword456!
    ```
 
-**Important:** Remember these exact credentials - you'll need to use them again in Step 3!
+**Important:** Remember these exact credentials - you'll need to use them again in Step 4!
 
-### Step 3: Configure Laravel Application
+### Step 4: Configure Laravel Application
 
 Now we configure the Laravel application itself. This is where we tell Laravel how to connect to the database and external services.
 
@@ -120,47 +133,23 @@ openssl rand -hex 16         # For REVERB_APP_KEY (32 alphanumeric chars)
 openssl rand -hex 16         # For REVERB_APP_SECRET (32 alphanumeric chars)
 ```
 
-**Critical:** The database settings (DB_DATABASE, DB_USERNAME, DB_PASSWORD) must be identical to what you set in Step 2!
+**Critical:** The database settings (DB_DATABASE, DB_USERNAME, DB_PASSWORD) must be identical to what you set in Step 3!
 
-### Step 4: Build and Start Services
+### Step 5: Build and Start Services
 
 Now we'll build the application image first, then start all services. This will take a few minutes the first time.
 
 First, build just the application image:
 ```bash
-docker-compose build application
+docker compose build
 ```
 
 Then start all services:
 ```bash
-docker-compose up -d --build
+docker compose up -d
 ```
 
 **Wait for:** All containers to start (you can check with `docker-compose ps`)
-
-### Step 5: Install Dependencies and Build Assets
-
-Now we need to install all dependencies and build the frontend assets.
-
-Install Composer dependencies (PHP packages):
-```bash
-docker-compose run --rm composer install
-```
-
-Generate application routes:
-```bash
-docker-compose run --rm artisan wayfinder:generate
-```
-
-Install NPM dependencies (JavaScript packages):
-```bash
-docker-compose run --rm npm install
-```
-
-Build frontend assets:
-```bash
-docker-compose run --rm npm run build
-```
 
 ### Step 6: Initialize Application
 
@@ -169,22 +158,22 @@ Now we need to download EVE Online data and set up the application database.
 Download and prepare EVE Online static data (this takes a while):
 ```bash
 # Download EVE SDE data (Static Data Export) - about 500MB
-docker-compose run --rm artisan sde:download
+docker compose exec wormhole-systems php artisan sde:download
 
 # Process and import the data into the database - takes 10-15 minutes
-docker-compose run --rm artisan sde:prepare
+docker compose exec wormhole-systems php artisan sde:prepare
 ```
 
 Generate the Laravel application key and set up the database:
 ```bash
 # Generate a unique encryption key for Laravel
-docker-compose run --rm artisan key:generate
+docker compose exec wormhole-systems php artisan key:generate
 
 # Create database tables and add sample data
-docker-compose run --rm artisan migrate --seed
+docker compose exec wormhole-systems php artisan migrate --seed
 ```
 
-### Step 7: Access Your Application
+### Step 8: Access Your Application
 
 🎉 **Your application is now ready!**
 
@@ -204,7 +193,7 @@ The database settings must be **identical** in these two files:
 
 ## Services
 
-- **application**: PHP-FPM application container
+- **wormhole-systems**: PHP-FPM application container
 - **server**: Nginx web server
 - **mysql**: MySQL database
 - **redis**: Redis cache
@@ -231,29 +220,22 @@ SSL certificates are handled automatically by Traefik:
 
 ### Artisan Commands
 ```bash
-docker-compose run --rm artisan migrate
-docker-compose run --rm artisan queue:work
-docker-compose run --rm artisan tinker
-```
-
-### NPM Commands
-```bash
-docker-compose run --rm npm install
-docker-compose run --rm npm run build
-docker-compose run --rm npm run dev
+docker compose exec wormhole-systems php artisan migrate
+docker compose exec wormhole-systems php artisan queue:work
+docker compose exec wormhole-systems php artisan tinker
 ```
 
 ### Service Management
 ```bash
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Restart services
-docker-compose restart
+docker compose restart
 
 # Update and rebuild
-docker-compose down
-docker-compose up -d --build
+docker compose down
+docker compose up --build -d
 ```
 
 ## Troubleshooting
@@ -261,7 +243,7 @@ docker-compose up -d --build
 ### Check SSL Certificates
 ```bash
 # View Traefik logs for certificate issues
-docker-compose logs traefik
+docker compose logs traefik
 
 # Check certificate storage
 docker volume inspect traefik-acme
@@ -270,22 +252,22 @@ docker volume inspect traefik-acme
 ### Service Issues
 ```bash
 # Check all services
-docker-compose ps
+docker compose ps
 
 # View specific service logs
-docker-compose logs [service-name]
+docker compose logs [service-name]
 
 # Restart all services
-docker-compose restart
+docker compose restart
 ```
 
 ### Database Issues
 ```bash
 # Access MySQL directly
-docker-compose exec mysql mysql -u root -p
+docker compose exec mysql mysql -u root -p
 
 # Reset database
-docker-compose run --rm artisan migrate:fresh --seed
+docker compose exec wormhole-systems php artisan migrate:fresh --seed
 ```
 
 ## Security Features

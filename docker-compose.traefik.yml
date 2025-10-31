@@ -1,0 +1,46 @@
+services:
+  traefik:
+    image: traefik:3.5
+    restart: always
+    command:
+      - --log.level=INFO
+      - --api=${APP_DEBUG}
+      - --api.dashboard=${APP_DEBUG}
+      - --api.insecure=true
+      - --providers.docker
+      - --providers.docker.exposedByDefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entryPoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
+      # ACME
+      - --certificatesresolvers.primary.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.primary.acme.storage=acme.json
+      - --certificatesresolvers.primary.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.primary.acme.httpchallenge=true
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-acme:/letsencrypt/acme.json
+      - traefik-logs:/var/log/traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.tls.certResolver=primary"
+    networks:
+      - web
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10Mb"
+        max-file: "5"
+
+volumes:
+    traefik-acme:
+    traefik-logs:
+
+networks:
+    web:
+      external: true
