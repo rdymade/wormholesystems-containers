@@ -1,5 +1,3 @@
 include:
   - docker-compose.traefik.yml
   - docker-compose.prod.yml
-  # comment above and uncomment below to launch test app
-  # - docker-compose.test.yml

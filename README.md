@@ -158,19 +158,19 @@ Now we need to download EVE Online data and set up the application database.
 Download and prepare EVE Online static data (this takes a while):
 ```bash
 # Download EVE SDE data (Static Data Export) - about 500MB
-docker compose exec php-fpm php artisan sde:download
+docker compose exec wormhole-systems php artisan sde:download
 
 # Process and import the data into the database - takes 10-15 minutes
-docker compose exec php-fpm php artisan sde:prepare
+docker compose exec wormhole-systems php artisan sde:prepare
 ```
 
 Generate the Laravel application key and set up the database:
 ```bash
 # Generate a unique encryption key for Laravel
-docker compose exec php-fpm php artisan key:generate
+docker compose exec wormhole-systems php artisan key:generate
 
 # Create database tables and add sample data
-docker compose exec php-fpm php artisan migrate --seed
+docker compose exec wormhole-systems php artisan migrate --seed
 ```
 
 ### Step 8: Access Your Application
@@ -193,7 +193,7 @@ The database settings must be **identical** in these two files:
 
 ## Services
 
-- **application**: PHP-FPM application container
+- **wormhole-systems**: PHP-FPM application container
 - **server**: Nginx web server
 - **mysql**: MySQL database
 - **redis**: Redis cache
@@ -220,9 +220,9 @@ SSL certificates are handled automatically by Traefik:
 
 ### Artisan Commands
 ```bash
-docker compose exec php-fpm php artisan migrate
-docker compose exec php-fpm php artisan queue:work
-docker compose exec php-fpm php artisan tinker
+docker compose exec wormhole-systems php artisan migrate
+docker compose exec wormhole-systems php artisan queue:work
+docker compose exec wormhole-systems php artisan tinker
 ```
 
 ### Service Management
@@ -267,7 +267,7 @@ docker compose restart
 docker compose exec mysql mysql -u root -p
 
 # Reset database
-docker compose exec php-fpm php artisan migrate:fresh --seed
+docker compose exec wormhole-systems php artisan migrate:fresh --seed
 ```
 
 ## Security Features
