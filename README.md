@@ -141,15 +141,15 @@ Now we'll build the application image first, then start all services. This will 
 
 First, build just the application image:
 ```bash
-docker compose build
+docker compose build wormhole-systems
 ```
 
 Then start all services:
 ```bash
-docker compose up -d
+docker compose up --build -d
 ```
 
-**Wait for:** All containers to start (you can check with `docker-compose ps`)
+**Wait for:** All containers to start (you can check with `docker compose ps`)
 
 ### Step 6: Initialize Application
 
@@ -168,6 +168,12 @@ Generate the Laravel application key and set up the database:
 ```bash
 # Generate a unique encryption key for Laravel
 docker compose exec wormhole-systems php artisan key:generate
+
+# Extract the generated key
+docker compose exec wormhole-systems grep APP_KEY .env
+
+# Copy the APP_KEY value and paste it into ./wormhole-systems/.env
+nano wormhole-systems/.env
 
 # Create database tables and add sample data
 docker compose exec wormhole-systems php artisan migrate --seed
