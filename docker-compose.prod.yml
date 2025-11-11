@@ -80,6 +80,9 @@ services:
     tty: true
     networks:
       - ws-internal
+    deploy:
+      mode: replicated
+      replicas: 5
     volumes:
       - laravel-storage-prod:/var/www/html/storage
       - laravel-logs:/var/www/html/logs
