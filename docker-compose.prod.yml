@@ -14,7 +14,10 @@ services:
       - caddy_data:/data
       - caddy_config:/config
       - ./dockerfiles/production/frankenPHP/php.ini:/usr/local/etc/php/conf.d/custom.ini
+<<<<<<< HEAD
       - ./dockerfiles/common/frankenPHP/Caddyfile:/etc/frankenphp/Caddyfile
+=======
+>>>>>>> dd6e35d (Port app over to frankenPHP)
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://127.0.0.1:80/"]
       interval: 10s
@@ -98,9 +101,9 @@ services:
       - web
     volumes:
       - laravel-storage:/app/storage
-#    depends_on:
-#      app:
-#        condition: service_healthy
+    depends_on:
+      app:
+        condition: service_healthy
     command: php artisan reverb:start --host=${REVERB_HOST:-0.0.0.0} --port=${REVERB_PORT:-8080} --debug
     restart: ${RESTART_POLICY:-always}
     healthcheck:
