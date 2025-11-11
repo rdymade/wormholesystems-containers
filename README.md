@@ -167,7 +167,8 @@ docker compose exec wormhole-systems php artisan sde:prepare
 Generate the Laravel application key and set up the database:
 ```bash
 # Generate a unique encryption key for Laravel
-docker compose exec wormhole-systems php artisan key:generate
+# IMPORTANT: Copy this key to wormhole-systems/.env:APP_KEY
+docker compose exec wormhole-systems php artisan key:generate --show
 
 # Extract the generated key
 docker compose exec wormhole-systems grep APP_KEY .env
@@ -177,6 +178,15 @@ nano wormhole-systems/.env
 
 # Create database tables and add sample data
 docker compose exec wormhole-systems php artisan migrate --seed
+```
+
+Clear cache and optimize app
+```bash
+# Clears all cached data
+docker compose exec wormhole-systems php artisan optimize:clear
+
+# Regenerates optimized configuration files
+docker compose exec wormhole-systems php artisan optimize
 ```
 
 ### Step 8: Access Your Application
