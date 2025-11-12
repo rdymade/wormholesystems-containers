@@ -141,10 +141,11 @@ Now we'll build the application image first, then start all services. This will 
 
 First, build just the application image:
 ```bash
-docker compose build wormhole-systems
+docker compose build app
 ```
 
 Then start all services:
+*the --build is not really necessary unless you changed some configurations*
 ```bash
 docker compose up --build -d
 ```
@@ -158,35 +159,32 @@ Now we need to download EVE Online data and set up the application database.
 Download and prepare EVE Online static data (this takes a while):
 ```bash
 # Download EVE SDE data (Static Data Export) - about 500MB
-docker compose exec wormhole-systems php artisan sde:download
+docker compose exec app php artisan sde:download
 
 # Process and import the data into the database - takes 10-15 minutes
-docker compose exec wormhole-systems php artisan sde:prepare
+docker compose exec app php artisan sde:prepare
 ```
 
 Generate the Laravel application key and set up the database:
 ```bash
 # Generate a unique encryption key for Laravel
-# IMPORTANT: Copy this key to wormhole-systems/.env:APP_KEY
-docker compose exec wormhole-systems php artisan key:generate --show
+docker compose exec app php artisan key:generate
 
 # Extract the generated key
-docker compose exec wormhole-systems grep APP_KEY .env
-
-# Copy the APP_KEY value and paste it into ./wormhole-systems/.env
-nano wormhole-systems/.env
+# IMPORTANT: Copy this key to wormhole-systems/.env:APP_KEY
+docker compose exec app grep APP_KEY .env
 
 # Create database tables and add sample data
-docker compose exec wormhole-systems php artisan migrate --seed
+docker compose exec app php artisan migrate --seed
 ```
 
 Clear cache and optimize app
 ```bash
 # Clears all cached data
-docker compose exec wormhole-systems php artisan optimize:clear
+docker compose exec app php artisan optimize:clear
 
 # Regenerates optimized configuration files
-docker compose exec wormhole-systems php artisan optimize
+docker compose exec app php artisan optimize
 ```
 
 ### Step 8: Access Your Application
@@ -236,9 +234,9 @@ SSL certificates are handled automatically by Traefik:
 
 ### Artisan Commands
 ```bash
-docker compose exec wormhole-systems php artisan migrate
-docker compose exec wormhole-systems php artisan queue:work
-docker compose exec wormhole-systems php artisan tinker
+docker compose exec app php artisan migrate
+docker compose exec app php artisan queue:work
+docker compose exec app php artisan tinker
 ```
 
 ### Service Management
@@ -283,7 +281,7 @@ docker compose restart
 docker compose exec mysql mysql -u root -p
 
 # Reset database
-docker compose exec wormhole-systems php artisan migrate:fresh --seed
+docker compose exec app php artisan migrate:fresh --seed
 ```
 
 ## Security Features

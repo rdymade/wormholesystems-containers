@@ -26,9 +26,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-acme:/letsencrypt/acme.json
       - traefik-logs:/var/log/traefik
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.api.tls.certResolver=primary"
     networks:
       - web
     logging:

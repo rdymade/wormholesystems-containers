@@ -14,9 +14,8 @@ services:
       - caddy_data:/data
       - caddy_config:/config
       - ./dockerfiles/production/frankenPHP/php.ini:/usr/local/etc/php/conf.d/custom.ini
-      - ./dockerfiles/common/frankenPHP/Caddyfile:/etc/frankenphp/Caddyfile
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://127.0.0.1:80/"]
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:80/up"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -78,6 +77,11 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "php artisan queue:work"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   scheduler:
     image: wormhole-systems:latest
     tty: true
@@ -90,6 +94,11 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "php artisan schedule:work"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   reverb:
     image: wormhole-systems:latest
     tty: true
@@ -104,7 +113,7 @@ services:
     command: php artisan reverb:start --host=${REVERB_HOST:-0.0.0.0} --port=${REVERB_PORT:-8080} --debug
     restart: ${RESTART_POLICY:-always}
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -113,13 +122,13 @@ services:
       - "traefik.docker.network=web"
       - "traefik.http.routers.wormholesystems-reverb.service=reverb"
       - "traefik.http.routers.wormholesystems-reverb.middlewares=reverb-ws@docker"
+      - "traefik.http.middlewares.reverb-ws.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.middlewares.reverb-ws.headers.customrequestheaders.Upgrade=websocket"
       - "traefik.http.middlewares.reverb-ws.headers.customrequestheaders.Connection=Upgrade"
-      - "traefik.http.routers.wormholesystems-reverb.rule=Host(`${WS_DOMAIN}`)"
+      - "traefik.http.routers.wormholesystems-reverb.rule=Host(`${WS_DOMAIN}`) && PathPrefix(`/app`)"
       - "traefik.http.routers.wormholesystems-reverb.entrypoints=websecure"
       - "traefik.http.routers.wormholesystems-reverb.tls.certresolver=primary"
       - "traefik.http.services.reverb.loadbalancer.server.port=${REVERB_PORT:-8080}"
-      - "traefik.http.services.reverb.loadbalancer.server.scheme=http"
 volumes:
   mysql-data:
   laravel-storage:

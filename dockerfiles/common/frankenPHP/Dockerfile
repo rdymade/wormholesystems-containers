@@ -62,8 +62,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy the initialization script
-#COPY ./dockerfiles/test/frankenPHP/entrypoint.sh /usr/local/bin/entrypoint.sh
-#RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY ./dockerfiles/test/frankenPHP/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Set the working directory
 WORKDIR /app
