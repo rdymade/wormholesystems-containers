@@ -69,7 +69,7 @@ services:
       - ws-internal
     deploy:
       mode: replicated
-      replicas: 1
+      replicas: 5
     volumes:
       - laravel-storage:/app/storage
     command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
