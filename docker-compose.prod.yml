@@ -1,24 +1,39 @@
 services:
-  wormhole-systems:
+  app:
     image: wormhole-systems:latest
     build:
       context: .
-      dockerfile: dockerfiles/common/php-fpm/Dockerfile
+      dockerfile: dockerfiles/common/frankenPHP/Dockerfile
+    environment:
+      SERVER_NAME: ":80"
     networks:
       - ws-internal
+      - web
     volumes:
-      - laravel-storage-prod:/var/www/html/storage
-      - php-logs:/var/log/php
-      - laravel-logs:/var/www/html/storage/logs
-      - ./dockerfiles/production/php-fpm/php.ini:/usr/local/etc/php/conf.d/custom.ini
+      - laravel-storage:/app/storage
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./dockerfiles/production/frankenPHP/php.ini:/usr/local/etc/php/conf.d/custom.ini
     healthcheck:
-      test: ["CMD-SHELL", "php-fpm-healthcheck || exit 1"]
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:80/up"]
       interval: 10s
       timeout: 5s
       retries: 3
     depends_on:
       mysql:
         condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.wormholesystems.service=app"
+      # IMPORTANT: Traefik now talks directly to the Caddy server (FrankenPHP) on its default port 80
+      - "traefik.http.services.app.loadbalancer.server.port=80"
+      - "traefik.http.routers.wormholesystems.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.wormholesystems.entrypoints=websecure"
+      - "traefik.http.routers.wormholesystems.tls.certresolver=primary"
+      - "traefik.http.middlewares.secure-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.secure-headers.headers.customrequestheaders.X-Forwarded-For="
+      - "traefik.http.routers.wormholesystems.middlewares=secure-headers"
   mysql:
     image: mariadb:latest
     hostname: mysql
@@ -47,34 +62,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-  server:
-    build:
-      context: .
-      dockerfile: ./dockerfiles/production/nginx/Dockerfile
-    networks:
-      - ws-internal
-      - web
-    volumes:
-      - laravel-storage-prod:/var/www/html/storage
-      - nginx-logs:/var/log/nginx
-      - ./dockerfiles/production/nginx/nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      wormhole-systems:
-        condition: service_healthy
-    restart: ${RESTART_POLICY:-always}
-    environment:
-      - APP_DOMAIN=${APP_DOMAIN:-localhost}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=web"
-      - "traefik.http.routers.wormholesystems.service=server"      
-      - "traefik.http.routers.wormholesystems.rule=Host(`${APP_DOMAIN}`)"
-      - "traefik.http.routers.wormholesystems.entrypoints=websecure"
-      - "traefik.http.routers.wormholesystems.tls.certresolver=primary"
-      - "traefik.http.services.server.loadbalancer.server.port=80"
-      - "traefik.http.middlewares.secure-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.middlewares.secure-headers.headers.customrequestheaders.X-Forwarded-For="
-      - "traefik.http.routers.wormholesystems.middlewares=secure-headers"
   queue:
     image: wormhole-systems:latest
     tty: true
@@ -84,26 +71,34 @@ services:
       mode: replicated
       replicas: 5
     volumes:
-      - laravel-storage-prod:/var/www/html/storage
-      - laravel-logs:/var/www/html/logs
+      - laravel-storage:/app/storage
     command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
     restart: unless-stopped
     depends_on:
-      wormhole-systems:
+      app:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "php artisan queue:work"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   scheduler:
     image: wormhole-systems:latest
     tty: true
     networks:
       - ws-internal
     volumes:
-      - laravel-storage-prod:/var/www/html/storage
-      - laravel-logs:/var/www/html/logs
+      - laravel-storage:/app/storage
     command: php artisan schedule:work
     restart: unless-stopped
     depends_on:
-      wormhole-systems:
+      app:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "php artisan schedule:work"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   reverb:
     image: wormhole-systems:latest
     tty: true
@@ -111,31 +106,37 @@ services:
       - ws-internal
       - web
     volumes:
-      - laravel-storage-prod:/var/www/html/storage
-      - laravel-logs:/var/www/html/logs
+      - laravel-storage:/app/storage
     depends_on:
-      wormhole-systems:
+      app:
         condition: service_healthy
     command: php artisan reverb:start --host=${REVERB_HOST:-0.0.0.0} --port=${REVERB_PORT:-8080} --debug
     restart: ${RESTART_POLICY:-always}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=web"
       - "traefik.http.routers.wormholesystems-reverb.service=reverb"
-      - "traefik.http.routers.wormholesystems-reverb.rule=Host(`${WS_DOMAIN}`)"
+      - "traefik.http.routers.wormholesystems-reverb.middlewares=reverb-ws@docker"
+      - "traefik.http.middlewares.reverb-ws.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.reverb-ws.headers.customrequestheaders.Upgrade=websocket"
+      - "traefik.http.middlewares.reverb-ws.headers.customrequestheaders.Connection=Upgrade"
+      - "traefik.http.routers.wormholesystems-reverb.rule=Host(`${WS_DOMAIN}`) && PathPrefix(`/app`)"
       - "traefik.http.routers.wormholesystems-reverb.entrypoints=websecure"
       - "traefik.http.routers.wormholesystems-reverb.tls.certresolver=primary"
       - "traefik.http.services.reverb.loadbalancer.server.port=${REVERB_PORT:-8080}"
-      - "traefik.http.services.reverb.loadbalancer.server.scheme=http"
 volumes:
   mysql-data:
-  laravel-storage-prod:
+  laravel-storage:
+  caddy_data:
+  caddy_config:
   # Log volumes for persistent storage
-  nginx-logs:
-  php-logs:
   mysql-logs:
   redis-logs:
-  laravel-logs:
 
 
 networks:
