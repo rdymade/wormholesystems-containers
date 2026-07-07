@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # FrankenPHP uses the `install-php-extensions` script.
 # `pdo`, `sockets`, `zip`, and `redis` are often pre-installed or easily added.
 RUN install-php-extensions \
+    bz2 \
     pcntl \
     pdo_mysql \
     sockets \
@@ -100,6 +101,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 # FrankenPHP uses the `install-php-extensions` script.
 # `pdo`, `sockets`, `zip`, and `redis` are often pre-installed or easily added.
 RUN install-php-extensions \
+    bz2 \
     pcntl \
     pdo_mysql \
     sockets \
